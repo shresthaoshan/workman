@@ -1,0 +1,17 @@
+# Binaries
+bin
+
+# Dependencies
+vendor/
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+
+# IDE files
+.vscode/
+.idea/
+
+# Environment variables
+.env
