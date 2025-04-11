@@ -1,6 +1,9 @@
 # Workman: A CLI Tool to Manage EC2 Instances
 
-[![Go Version](https://img.shields.io/badge/go-%3E%3D1.20-blue)](https://golang.org/) [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+[![Release](https://github.com/shresthaoshan/workman/actions/workflows/release.yml/badge.svg)](https://github.com/shresthaoshan/workman/actions/workflows/release.yml)
+[![Go Version](https://img.shields.io/badge/go-%3E%3D1.24-blue)](https://golang.org/) 
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **Workman** is a lightweight, open-source CLI tool designed to simplify the management of AWS EC2 instances. With Workman, you can start, stop, SSH into, configure, list, and remove EC2 instances from the command line. It is built using Go and integrates seamlessly with AWS SDK for Go.
 
