@@ -24,17 +24,17 @@ func main() {
 	app := &cli.App{
 		Name:  "workman",
 		Usage: "A CLI tool to manage EC2 instances",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:    "login",
-				Aliases: []string{"l"},
-				Usage:   "SSH into the instance after starting it",
-			},
-		},
 		Commands: []*cli.Command{
 			{
 				Name:  "start",
 				Usage: "Start an EC2 instance",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "login",
+						Aliases: []string{"l"},
+						Usage:   "SSH into the instance after starting it",
+					},
+				},
 				Action: func(c *cli.Context) error {
 					if c.NArg() < 1 {
 						return errors.New("label is required")

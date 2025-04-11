@@ -1,4 +1,4 @@
-name: Build and Release
+name: Release
 
 on:
   push:
@@ -6,23 +6,33 @@ on:
       - 'v*.*.*'
 
 jobs:
-  build:
+  release:
+    name: Build and Release
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Set Version from Tag
+        run: echo "VERSION=${GITHUB_REF##*/}" >> $GITHUB_ENV
+
+      - name: Build binaries using Makefile
+        run: make build
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          go-version: '1.24'
-
-      - name: Run Makefile build
-        run: make build-all
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload binaries
+        uses: softprops/action-gh-release@v2
         with:
-          files: |
-            ./bin/*   # adjust to your output directory
+          files: bin/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/shresthaoshan/workman/internal/config"
 	"github.com/shresthaoshan/workman/internal/models"
+
+	"gopkg.in/ini.v1"
 )
 
 type Workman struct {
@@ -290,8 +293,29 @@ func (w *Workman) getInstanceDetails(label string) (models.InstanceDetails, erro
 
 // createAWSSession creates an AWS session using the specified profile
 func (w *Workman) createAWSSession(profile string) (*session.Session, error) {
+	region := "us-west-2" // default region
+
+	// Construct path to ~/.aws/config
+	configPath := filepath.Join(os.Getenv("HOME"), ".aws", "config")
+
+	// Load the AWS config file
+	cfg, err := ini.Load(configPath)
+	if err == nil {
+		// AWS INI config uses "profile <name>" section name for named profiles
+		sectionName := "profile " + profile
+		if profile == "default" {
+			sectionName = "default"
+		}
+
+		if section, err := cfg.GetSection(sectionName); err == nil {
+			if key, err := section.GetKey("region"); err == nil {
+				region = key.String()
+			}
+		}
+	}
+
 	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            aws.Config{Region: aws.String("us-west-2")}, // Replace with your desired region
+		Config:            aws.Config{Region: aws.String(region)}, // Replace with your desired region
 		SharedConfigState: session.SharedConfigEnable,
 		Profile:           profile,
 	})
