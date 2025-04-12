@@ -91,11 +91,18 @@ func main() {
 					fmt.Print("Enter the instance ID: ")
 					fmt.Scanln(&id)
 
+					var instanceUser string
+					fmt.Print("Enter the instance user (default: ubuntu): ")
+					fmt.Scanln(&instanceUser)
+					if instanceUser == "" {
+						instanceUser = "ubuntu"
+					}
+
 					var pem string
 					fmt.Print("Enter the path to the PEM file: ")
 					fmt.Scanln(&pem)
 
-					var awsProfile string
+					var awsProfile string = "default"
 					fmt.Print("Enter the AWS profile (leave blank for default): ")
 					fmt.Scanln(&awsProfile)
 					if awsProfile == "" {

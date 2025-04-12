@@ -88,6 +88,7 @@ func (w *Workman) ListInstances() error {
 		fmt.Printf("\nLabel: %s\n", label)
 		fmt.Printf(" - AWS Profile: %s\n", details.AwsProfile)
 		fmt.Printf(" - Instance ID: %s\n", details.ID)
+		fmt.Printf(" - Instance User: %s\n", details.InstanceUser)
 		fmt.Printf(" - PEM File: %s\n", details.PEM)
 		fmt.Printf(" - Use Private IP: %v\n", details.UsePrivateIP)
 
@@ -168,7 +169,7 @@ func (w *Workman) StartInstance(label string, login bool) error {
 		fmt.Printf("Instance '%s' is already running.\n", instance.ID)
 		w.UpdateLastAccessed(label) // Update LastAccessed on access
 		if login {
-			return w.sshIntoInstance(instance.ID, instance.PEM, instance.AwsProfile, instance.UsePrivateIP)
+			return w.sshIntoInstance(&instance)
 		}
 		return nil
 	}
@@ -183,9 +184,9 @@ func (w *Workman) StartInstance(label string, login bool) error {
 
 	svc := ec2.New(sess)
 
-	_, err = svc.StartInstances(&ec2.StartInstancesInput{
-		InstanceIds: []*string{aws.String(instance.ID)},
-	})
+	instanceIds := []*string{aws.String(instance.ID)}
+
+	_, err = svc.StartInstances(&ec2.StartInstancesInput{InstanceIds: instanceIds})
 	if err != nil {
 		return fmt.Errorf("failed to start instance: %v", err)
 	}
@@ -193,7 +194,7 @@ func (w *Workman) StartInstance(label string, login bool) error {
 	fmt.Printf("Waiting for instance '%s' to start...\n", instance.ID)
 
 	err = svc.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{
-		InstanceIds: []*string{aws.String(instance.ID)},
+		InstanceIds: instanceIds,
 	})
 	if err != nil {
 		return fmt.Errorf("failed while waiting for instance to start: %v", err)
@@ -203,7 +204,7 @@ func (w *Workman) StartInstance(label string, login bool) error {
 	w.UpdateLastAccessed(label) // Update LastAccessed on access
 
 	if login {
-		return w.sshIntoInstance(instance.ID, instance.PEM, instance.AwsProfile, instance.UsePrivateIP)
+		return w.sshIntoInstance(&instance)
 	}
 
 	return nil
@@ -352,8 +353,8 @@ func (w *Workman) getInstanceState(instanceID, profile string) (string, error) {
 }
 
 // sshIntoInstance connects to an EC2 instance via SSH
-func (w *Workman) sshIntoInstance(instanceID, pemFile, profile string, usePrivateIP bool) error {
-	sess, err := w.createAWSSession(profile)
+func (w *Workman) sshIntoInstance(instance *models.InstanceDetails) error {
+	sess, err := w.createAWSSession(instance.AwsProfile)
 
 	if err != nil {
 		return err
@@ -362,7 +363,7 @@ func (w *Workman) sshIntoInstance(instanceID, pemFile, profile string, usePrivat
 	svc := ec2.New(sess)
 
 	input := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{aws.String(instanceID)},
+		InstanceIds: []*string{aws.String(instance.ID)},
 	}
 
 	result, err := svc.DescribeInstances(input)
@@ -371,28 +372,28 @@ func (w *Workman) sshIntoInstance(instanceID, pemFile, profile string, usePrivat
 	}
 
 	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
-		return fmt.Errorf("instance '%s' not found", instanceID)
+		return fmt.Errorf("instance '%s' not found", instance.ID)
 	}
 
-	instance := result.Reservations[0].Instances[0]
+	instanceDetails := result.Reservations[0].Instances[0]
 
 	var ip string
-	if usePrivateIP || instance.PublicIpAddress == nil {
-		ip = *instance.PrivateIpAddress
+	if instance.UsePrivateIP || instanceDetails.PublicIpAddress == nil {
+		ip = *instanceDetails.PrivateIpAddress
 		fmt.Println("Using private IP for SSH connection.")
 	} else {
-		ip = *instance.PublicIpAddress
+		ip = *instanceDetails.PublicIpAddress
 	}
 
 	if ip == "" {
-		return fmt.Errorf("could not retrieve an IP address for instance '%s'", instanceID)
+		return fmt.Errorf("could not retrieve an IP address for instance '%s'", instance.ID)
 	}
 
-	cmd := exec.Command("ssh", "-i", pemFile, fmt.Sprintf("ec2-user@%s", ip))
+	cmd := exec.Command("ssh", "-i", instance.PEM, fmt.Sprintf("%s@%s", instance.InstanceUser, ip))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	fmt.Printf("Connecting to instance '%s' via SSH...\n", instanceID)
+	fmt.Printf("Connecting to instance '%s' via SSH...\n", instance.ID)
 	return cmd.Run()
 }
