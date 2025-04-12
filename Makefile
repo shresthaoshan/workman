@@ -4,7 +4,7 @@ VERSION := $(shell git describe --tags --always)
 
 GO := go
 GO_TEST_FLAGS := -v
-GO_IMAGE := golang:1.24
+GO_IMAGE := golang:1.24-bullseye
 
 BUILD_DIR := bin
 MAIN_GO_FILE := cmd/$(APP_NAME)/main.go
